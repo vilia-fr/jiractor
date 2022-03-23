@@ -99,26 +99,30 @@ def simplify_issue(issue):
     return {**{'links': links, 'key': issue['key']}, **fields}
 
 
-def get_issues(jql, issue_key, all_issues):
-    if jql:
-        print(f'> JQL {jql}')
-        res = JIRA.jql(jql, limit=100000)['issues']
-    else:
-        print(f'> Issue {issue_key}')
-        try:
-            res = [JIRA.get_issue(issue_key)]
-        except:
-            res = []
+def get_all_issues(project):
+    issues = list()
+    start_at = 0
+    max_results = 100000
+    total = max_results + 1
+    while start_at < total:
+        print(f'Querying starting from {start_at}...')
+        res = JIRA.jql(f'project = {project}', start=start_at, limit=max_results)
+        max_results = res['maxResults']
+        start_at = res['startAt'] + max_results
+        total = res['total']
+        issues += res['issues']
+        print(f'Done with {max_results} max results and {total} total issues')
+    return issues
 
+
+def get_issues(project):
+    res = get_all_issues(project)
     print(f'Queried {len(res)} issues')
     i = 0
     with tqdm(total=len(res)) as pbar:
         for issue in res:
             i += 1
             key = issue['key']
-            if key in all_issues:
-                continue
-            all_issues[key] = 'prefill'
 
             simple = simplify_issue(issue)
             if 'Sub-Tasks' in simple:
@@ -139,15 +143,6 @@ def get_issues(jql, issue_key, all_issues):
     print(f'Processed {len(res)} issues')
 
 
-def dump_all(filename, jql, all_issues):
-    with open(filename, 'w') as outfile:
-        json.dump({
-            'query': jql,
-            'timestamp': str(datetime.now()),
-            'issues': all_issues,
-        }, outfile, indent=4)
-
-
 def dump_one(filename, issue):
     with open(filename, 'w') as outfile:
         json.dump(issue, outfile, indent=4)
@@ -158,12 +153,11 @@ def dump_one(filename, issue):
 #####################################################################
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print('Usage: python %s <jql> <output.json>' % sys.argv[0])
+    if len(sys.argv) != 2:
+        print('Usage: python %s <PROJECT>' % sys.argv[0])
         exit(1)
 
-    jql = sys.argv[1]
-    out_filename = sys.argv[2]
+    project = sys.argv[1]
 
     start_time = datetime.now()
     print(f'JIRA extract starts at {start_time}')
@@ -173,11 +167,8 @@ if __name__ == '__main__':
     print(f'Done: {len(custom_fields)} fields')
 
     all_issues = dict()
-    get_issues(jql, None, all_issues)
+    get_issues(project)
     print(f'Downloaded {len(all_issues)} issues')
-    print(f'Outputting to {out_filename}...')
-
-    dump_all(out_filename, jql, all_issues)
 
     end_time = datetime.now()
     print(f'Finished at {end_time}, ran for {end_time - start_time}')
