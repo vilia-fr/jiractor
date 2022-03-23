@@ -1,0 +1,3 @@
+tqdm
+atlassian-python-api
+python-dotenv
