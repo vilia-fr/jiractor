@@ -1,6 +1,6 @@
 # Jiractor is a JIRA extractor
 
-A simple command-line tool to extract the result of a JQL query in 
+A simple command-line tool to extract all JIRA issues for a given project in 
 simple human-readable JSON with history and links.
 
 ## Installation
@@ -16,16 +16,25 @@ pip install -r requirements.txt
 Specify your JIRA credentials in the `.env` file. Then execute:
 
 ```shell
-python jira_extract.py '<JQL>' <output.json>
+python jira_extract.py <PROJECT>
 ```
 
-The tool will generate a large `output.json` file with all issues, and 
-a bunch of `ISSUE-123.json` files in `issues` folder.
+The tool will generate a bunch of `ISSUE-123.json` files in `issues` folder. You can then use
+`merge_json.py` to merge them into one large JSON file, if you want:
+
+```shell
+python merge_json.py <output.json>
+```
+
+An example script, which prints out all issues, which were reopened in the last 30 days:
+
+```shell
+python example.py
+```
 
 ## Known bugs and limitations
 
-1. Jira API returns maximum 1000 issues, so for the large projects you will need 
-to split your query like this: `project = MYPROJECT and key >= 'MYPROJECT-2000' and key < 'MYPROJECT-3000'`  
-
+- The tool always exports the entire project. It will be much more efficient to do it incrementally,
+extracting the last modification date from the file timestamps and adjusting the JQL accordingly.
 
 Copyright (C) 2021 Constantine Kulak (ck@vilia.fr)

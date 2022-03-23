@@ -1,3 +1,4 @@
 tqdm
 atlassian-python-api
 python-dotenv
+iso8601
